@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+
+title: Fuzzy Time Series Forecasting From Scratch
+
+authors:
+
+- family-names: Fathi
+  given-names: Hannah
+
+date-released: 2025
+
+license: MIT
