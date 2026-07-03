@@ -1714,3 +1714,1561 @@ Every experiment automatically exports
 
 The outputs are organized inside the `outputs/` directory to facilitate reproducibility and further analysis.
 
+---
+
+# Experimental Setup
+
+This section describes the experimental protocol adopted throughout the project.
+
+The objective is to ensure that every reported result can be reproduced under identical conditions.
+
+All experiments were performed using the same implementation, evaluation strategy, and preprocessing pipeline.
+
+---
+
+# Experimental Workflow
+
+Every experiment follows the pipeline shown below.
+
+```
+
+Dataset
+
+↓
+
+Cleaning
+
+↓
+
+Train/Test Split
+
+↓
+
+Universe Construction
+
+↓
+
+Partitioning
+
+↓
+
+Membership Functions
+
+↓
+
+Fuzzification
+
+↓
+
+FLR Extraction
+
+↓
+
+FLRG Construction
+
+↓
+
+Forecasting
+
+↓
+
+Evaluation
+
+↓
+
+Visualization
+
+↓
+
+Export Results
+
+```
+
+This workflow is executed independently for every dataset.
+
+---
+
+# Forecasting Tasks
+
+Four independent forecasting problems are evaluated.
+
+| Dataset | Forecast Target |
+|-----------|----------------|
+| Mackey–Glass | Next Numerical Observation |
+| Influenza | TOTAL SPECIMENS |
+| Influenza | TOTAL A |
+| Influenza | TOTAL B |
+
+Each target is modeled independently using a separate FTS model.
+
+---
+
+# Model Orders
+
+The implementation supports arbitrary forecasting orders.
+
+The experiments evaluate
+
+| Model | Order |
+|--------|------|
+| FOFTS | 1 |
+| HOFTS | 2 |
+| HOFTS | 3 |
+| HOFTS | 4 |
+
+For every order,
+
+a complete FLRG table is generated.
+
+---
+
+# Partition Search
+
+Different numbers of fuzzy partitions were evaluated.
+
+The grid includes
+
+| Number of Partitions |
+|----------------------|
+| 7 |
+| 10 |
+| 15 |
+| 20 |
+| 30 |
+
+Each partition count produces a different fuzzy representation of the universe.
+
+The optimal value is selected according to the lowest RMSE.
+
+---
+
+# Membership Functions
+
+Two membership functions are available.
+
+| Membership Function | Used |
+|--------------------|------|
+| Triangular | ✔ |
+| Gaussian | Available |
+
+Although Gaussian membership functions were implemented,
+
+the reported experiments use triangular membership functions because they
+
+- require fewer computations,
+- are easier to interpret,
+- are the most common choice in classical FTS literature.
+
+---
+
+# Partitioning Strategies
+
+The framework supports two partition generation methods.
+
+## Equal Width
+
+Uniform interval lengths across the universe.
+
+Suitable for
+
+- continuous data
+- approximately uniform distributions
+
+---
+
+## Quantile
+
+Adaptive partition widths based on empirical quantiles.
+
+Suitable for
+
+- skewed distributions
+- count data
+- dense local regions
+
+For the Influenza datasets,
+
+both strategies are evaluated,
+
+and the one producing the lowest RMSE is selected.
+
+---
+
+# Teacher Forcing Evaluation
+
+Prediction is performed using one-step-ahead teacher forcing.
+
+Instead of recursively feeding predicted values back into the model,
+
+the true observation is appended after every prediction.
+
+Workflow
+
+```
+
+Known History
+
+↓
+
+Predict Next Value
+
+↓
+
+Observe True Value
+
+↓
+
+Append True Value
+
+↓
+
+Predict Again
+
+```
+
+Advantages
+
+- prevents error accumulation,
+- ensures fair comparison,
+- isolates model quality from recursive drift.
+
+---
+
+# Forecasting Horizon
+
+The forecasting horizon is
+
+```
+One-Step Ahead
+```
+
+Only the immediate next observation is predicted.
+
+This is the standard evaluation protocol in most FTS studies.
+
+---
+
+# Hyperparameter Grid Search
+
+The notebook automatically evaluates every parameter combination.
+
+Grid
+
+```
+
+Orders
+
+1
+
+2
+
+3
+
+4
+
+×
+
+Partitions
+
+7
+
+10
+
+15
+
+20
+
+30
+
+```
+
+Total Configurations
+
+```
+4 × 5 = 20
+```
+
+Each configuration is trained and evaluated independently.
+
+---
+
+# Model Selection
+
+The primary model selection criterion is
+
+```
+Minimum RMSE
+```
+
+Secondary metrics are reported for completeness.
+
+- MAE
+- MAPE
+
+The best-performing configuration is automatically selected for each dataset.
+
+---
+
+# Evaluation Metrics
+
+Three forecasting metrics are reported.
+
+---
+
+## Root Mean Squared Error (RMSE)
+
+RMSE measures the square root of the average squared prediction error.
+
+Characteristics
+
+- sensitive to large errors,
+- emphasizes forecasting accuracy,
+- primary optimization criterion.
+
+Lower values indicate better performance.
+
+---
+
+## Mean Absolute Error (MAE)
+
+MAE computes the average absolute prediction error.
+
+Advantages
+
+- intuitive interpretation,
+- robust to individual outliers,
+- measured in the original unit of the data.
+
+Lower values indicate better performance.
+
+---
+
+## Mean Absolute Percentage Error (MAPE)
+
+MAPE measures prediction error relative to the magnitude of the observations.
+
+Advantages
+
+- scale independent,
+- easy to compare across datasets,
+- commonly used in forecasting literature.
+
+For observations equal to zero,
+
+appropriate safeguards are applied to avoid numerical instability.
+
+---
+
+# Logarithmic Transformation
+
+Because Influenza Type A and Type B exhibit highly skewed count distributions,
+
+a logarithmic transformation is applied before model construction.
+
+Training
+
+```
+Original Counts
+
+↓
+
+log1p
+
+↓
+
+FTS Training
+```
+
+Prediction
+
+```
+Prediction
+
+↓
+
+expm1
+
+↓
+
+Original Scale
+
+↓
+
+Clip Negative Values
+```
+
+The reported evaluation metrics are always computed on the original scale.
+
+---
+
+# Rule Statistics
+
+For every experiment,
+
+the implementation records
+
+- number of generated FLRGs,
+- rule coverage,
+- hit rate,
+- fallback rate,
+- back-off rate,
+- unique fuzzy states,
+- number of active partitions.
+
+These statistics help explain the forecasting behavior of different model orders.
+
+---
+
+# Computational Complexity
+
+Although FTS models are computationally lightweight,
+
+their complexity depends on the forecasting order.
+
+Approximate behavior
+
+| Stage | Complexity |
+|--------|------------|
+| Partition Generation | O(m) |
+| Membership Computation | O(n × m) |
+| Fuzzification | O(n × m) |
+| FLR Construction | O(n) |
+| FLRG Generation | O(n) |
+| Forecasting | O(1) average lookup |
+
+where
+
+- n = number of observations
+- m = number of fuzzy partitions
+
+Increasing the model order increases the number of possible antecedent patterns,
+
+which may reduce rule density and increase sparsity.
+
+---
+
+# Reproducibility
+
+To ensure reproducible experiments,
+
+the following practices are adopted.
+
+✔ Fixed preprocessing pipeline
+
+✔ Fixed train/test split
+
+✔ No random shuffling
+
+✔ Identical evaluation protocol
+
+✔ Automatic parameter search
+
+✔ Consistent visualization settings
+
+✔ Exported experiment summaries
+
+Running the notebook from beginning to end reproduces all reported figures, tables, and evaluation metrics.
+
+# Results & Analysis
+
+The proposed Fuzzy Time Series framework was evaluated on two independent forecasting problems with fundamentally different characteristics. The first dataset, Mackey–Glass, represents a deterministic nonlinear chaotic system and is commonly used as a benchmark for time series forecasting algorithms. The second dataset consists of real influenza surveillance records containing weekly epidemiological counts, which exhibit substantial stochasticity, nonstationarity, and skewness.
+
+All experiments followed the identical evaluation protocol presented in the Methodology section.
+
+* Chronological 80% / 20% train–test split
+* One-step-ahead forecasting
+* Teacher forcing evaluation
+* Grid search over model order and number of fuzzy partitions
+* RMSE used for model selection
+* MAE and MAPE reported as complementary evaluation metrics
+
+For every dataset, both First-Order FTS (FOFTS) and Higher-Order FTS (HOFTS) models were trained and evaluated using exactly the same experimental pipeline.
+
+---
+
+# Evaluation Protocol
+
+Each candidate model is uniquely defined by two hyperparameters:
+
+* Model order
+* Number of fuzzy partitions
+
+The following search space was explored.
+
+| Hyperparameter | Values            |
+| -------------- | ----------------- |
+| Order          | 1, 2, 3, 4        |
+| Partitions     | 7, 10, 15, 20, 30 |
+
+This results in twenty independent configurations for each forecasting target.
+
+For Influenza datasets, both equal-width and quantile partitioning strategies were evaluated during experimentation. The configuration with the lowest RMSE was selected as the final model.
+
+---
+
+# Performance Metrics
+
+Three standard forecasting metrics were used.
+
+### Root Mean Squared Error (RMSE)
+
+RMSE penalizes larger prediction errors more heavily and serves as the primary optimization criterion.
+
+Lower RMSE indicates better predictive performance.
+
+---
+
+### Mean Absolute Error (MAE)
+
+MAE measures the average magnitude of forecasting errors regardless of direction.
+
+Unlike RMSE, MAE is less sensitive to occasional large deviations.
+
+---
+
+### Mean Absolute Percentage Error (MAPE)
+
+MAPE measures prediction error as a percentage of the observed value.
+
+This metric allows comparison between datasets with different numerical scales.
+
+---
+
+# Dataset 1 — Mackey–Glass
+
+The Mackey–Glass dataset represents a nonlinear chaotic dynamical system with long-range temporal dependencies.
+
+Such systems are particularly suitable for evaluating higher-order fuzzy models because future observations depend on several previous states rather than only the immediately preceding one.
+
+After evaluating all parameter combinations, the following model achieved the lowest forecasting error.
+
+| Model      | Order | Partitions |         RMSE |          MAE |       MAPE |
+| ---------- | ----: | ---------: | -----------: | -----------: | ---------: |
+| Best HOFTS | **3** |     **30** | **0.034076** | **0.025283** | **4.075%** |
+| Best FOFTS |     1 |         30 |     0.050110 |     0.040302 |     6.766% |
+
+The higher-order model reduced RMSE by approximately **32%** compared with the strongest first-order baseline.
+
+---
+
+### Rule Statistics
+
+| Statistic        | Value |
+| ---------------- | ----: |
+| Order            |     3 |
+| Partitions       |    30 |
+| High-order FLRGs |   232 |
+| Rule hit rate    |   97% |
+| Fallback rate    |    3% |
+| Back-off rate    |    9% |
+
+The very high rule hit rate indicates that the learned fuzzy logical relationships successfully covered most temporal patterns encountered during testing.
+
+Only a small proportion of predictions required persistence fallback, demonstrating that the proposed hierarchical back-off strategy effectively mitigated the sparsity introduced by higher-order antecedents.
+
+---
+
+### Interpretation
+
+Several observations can be drawn from these experiments.
+
+* Increasing the model order substantially improved forecasting accuracy.
+* Larger numbers of fuzzy partitions produced finer representations of the state space.
+* The hierarchical back-off mechanism prevented excessive forecasting failures caused by missing high-order rules.
+* HOFTS successfully captured longer temporal dependencies characteristic of chaotic systems.
+
+These findings are consistent with the theoretical motivation behind higher-order fuzzy time series.
+
+---
+
+### Generated Figures
+
+The notebook automatically produces the following visualizations.
+
+Figure 1
+
+Actual vs Predicted Values (Best Configuration)
+
+```
+images/mackey_glass_prediction.png
+```
+
+Figure 2
+
+RMSE Heatmap
+
+```
+images/mackey_glass_rmse_heatmap.png
+```
+
+Figure 3
+
+Membership Functions
+
+```
+images/mackey_glass_membership_functions.png
+```
+
+Figure 4
+
+Forecast Error Distribution
+
+```
+images/mackey_glass_error_distribution.png
+```
+
+---
+
+# Dataset 2 — Influenza Surveillance
+
+Unlike Mackey–Glass, influenza surveillance data originate from a real epidemiological monitoring system.
+
+These observations exhibit
+
+* measurement noise,
+* abrupt seasonal fluctuations,
+* irregular outbreaks,
+* skewed count distributions,
+* changing variance over time.
+
+Consequently, forecasting this dataset is considerably more challenging.
+
+Three independent forecasting targets were evaluated.
+
+* TOTAL SPECIMENS
+* TOTAL A
+* TOTAL B
+
+For TOTAL A and TOTAL B, a log1p transformation was applied before training to stabilize variance.
+
+Predictions were transformed back to the original scale before evaluation.
+
+---
+
+# Target 1 — TOTAL SPECIMENS
+
+### Best Model
+
+| Model        | Order | Partitions | Partitioning |          RMSE |         MAE |       MAPE |
+| ------------ | ----: | ---------: | ------------ | ------------: | ----------: | ---------: |
+| Best Overall | **1** |     **15** | Equal Width  | **10617.999** | **8352.66** | **10.13%** |
+| Best FOFTS   |     1 |         15 | Equal Width  |     10617.999 |     8352.66 |     10.13% |
+
+---
+
+### Rule Statistics
+
+| Statistic       | Value |
+| --------------- | ----: |
+| Order           |     1 |
+| Partitions      |    15 |
+| Number of FLRGs |    13 |
+| Rule hit rate   |  100% |
+| Back-off rate   |    0% |
+| Fallback rate   |    0% |
+
+---
+
+### Interpretation
+
+Higher-order models did not improve forecasting accuracy for this target.
+
+Possible explanations include
+
+* limited temporal dependency,
+* high observational noise,
+* insufficient repeated higher-order patterns,
+* increased rule sparsity.
+
+Since every test pattern matched an existing first-order rule, increasing the model order only enlarged the rule space without introducing additional predictive information.
+
+---
+
+### Generated Figures
+
+```
+images/specimens_prediction.png
+
+images/specimens_rmse_heatmap.png
+
+images/specimens_membership_functions.png
+```
+
+---
+
+# Target 2 — TOTAL A
+
+TOTAL A contains significantly skewed weekly counts.
+
+To reduce heteroscedasticity, the series was transformed using
+
+log(1+x)
+
+before fuzzy modeling.
+
+---
+
+### Best Model
+
+| Model        | Order | Partitions | Partitioning | Transform |        RMSE |         MAE |       MAPE |
+| ------------ | ----: | ---------: | ------------ | --------- | ----------: | ----------: | ---------: |
+| Best Overall | **3** |     **30** | Equal Width  | log1p     | **3700.41** | **1700.00** | **25.62%** |
+| Best FOFTS   |     1 |         30 | Equal Width  | log1p     |     3701.47 |     1955.95 |     32.06% |
+
+---
+
+### Rule Statistics
+
+| Statistic        | Value |
+| ---------------- | ----: |
+| High-order FLRGs |   124 |
+| Rule hit rate    |  100% |
+| Back-off rate    | 35.4% |
+| Fallback rate    |    0% |
+
+---
+
+### Interpretation
+
+Although HOFTS achieved the lowest RMSE, the numerical improvement over FOFTS was relatively small.
+
+The relatively high back-off rate indicates that more than one-third of predictions relied on lower-order rules rather than exact third-order matches.
+
+This observation illustrates one of the primary challenges of higher-order fuzzy models: increasing the order rapidly expands the antecedent space while reducing the frequency of repeated patterns.
+
+The proposed hierarchical back-off strategy successfully prevented complete rule failures and maintained full rule coverage throughout testing.
+
+---
+
+### Generated Figures
+
+```
+images/totalA_prediction.png
+
+images/totalA_rmse_heatmap.png
+
+images/totalA_membership_functions.png
+```
+
+---
+
+# Target 3 — TOTAL B
+
+TOTAL B exhibits even greater sparsity than TOTAL A, with numerous weeks containing relatively small case counts.
+
+---
+
+### Best Model
+
+| Model        | Order | Partitions | Partitioning | Transform |        RMSE |         MAE |       MAPE |
+| ------------ | ----: | ---------: | ------------ | --------- | ----------: | ----------: | ---------: |
+| Best Overall | **1** |     **15** | Equal Width  | log1p     | **332.418** | **214.615** | **28.38%** |
+| Best FOFTS   |     1 |         15 | Equal Width  | log1p     |     332.418 |     214.615 |     28.38% |
+
+---
+
+### Rule Statistics
+
+| Statistic     | Value |
+| ------------- | ----: |
+| FLRGs         |    13 |
+| Rule hit rate |  100% |
+| Back-off rate |    0% |
+| Fallback rate |    0% |
+
+---
+
+### Interpretation
+
+For this dataset, higher-order models did not improve predictive performance.
+
+The combination of sparse observations and irregular fluctuations produced insufficient repeated higher-order patterns for effective rule learning.
+
+Consequently, the simpler FOFTS model provided the best balance between model complexity and forecasting accuracy.
+
+---
+
+### Generated Figures
+
+```
+images/totalB_prediction.png
+
+images/totalB_rmse_heatmap.png
+
+images/totalB_membership_functions.png
+```
+
+---
+
+# Comparative Performance
+
+The best-performing configuration for each forecasting target is summarized below.
+
+| Dataset         | Best Order | Partitions |          RMSE |          MAE |       MAPE |
+| --------------- | ---------: | ---------: | ------------: | -----------: | ---------: |
+| Mackey–Glass    |      **3** |     **30** |  **0.034076** | **0.025283** | **4.075%** |
+| TOTAL SPECIMENS |      **1** |     **15** | **10617.999** |  **8352.66** | **10.13%** |
+| TOTAL A         |      **3** |     **30** |   **3700.41** |  **1700.00** | **25.62%** |
+| TOTAL B         |      **1** |     **15** |   **332.418** |  **214.615** | **28.38%** |
+
+---
+
+# Discussion
+
+The experimental results demonstrate that the effectiveness of Higher-Order Fuzzy Time Series models strongly depends on the temporal characteristics of the underlying data.
+
+For the Mackey–Glass benchmark, which exhibits deterministic nonlinear dynamics and long-memory behavior, HOFTS clearly outperformed FOFTS. Incorporating multiple historical fuzzy states enabled the model to learn more informative fuzzy logical relationships, resulting in substantially lower prediction errors.
+
+In contrast, the influenza surveillance datasets presented a considerably more challenging forecasting problem due to stochastic fluctuations, sparse observations, and abrupt changes. Under these conditions, increasing the model order frequently produced sparse FLRG tables with relatively few repeated antecedent patterns. Although the proposed hierarchical back-off strategy successfully maintained high rule coverage, the additional historical context did not consistently translate into improved predictive performance.
+
+These findings highlight an important trade-off in fuzzy time series modeling. Increasing model order enhances representational power for deterministic systems but simultaneously enlarges the antecedent space, making rule sparsity a significant practical concern for noisy real-world datasets.
+
+Overall, the experiments confirm that HOFTS is particularly advantageous when long-range temporal dependencies are present, whereas FOFTS remains an efficient and competitive choice for sparse or highly stochastic time series.
+
+
+# Repository Outputs & Generated Files
+
+One of the primary objectives of this repository is **full reproducibility**. Every experiment can be regenerated directly from the provided notebook, datasets, and source implementation without requiring any manual modification.
+
+To facilitate reproducible research and simplify project navigation, all generated artifacts are automatically organized into dedicated directories.
+
+---
+
+# Output Directory Structure
+
+The repository stores generated results using the following structure.
+
+```text
+outputs/
+│
+├── figures/
+│   ├── mackey_glass/
+│   ├── total_specimens/
+│   ├── total_A/
+│   └── total_B/
+│
+├── metrics/
+│   ├── mackey_glass_metrics.csv
+│   ├── total_specimens_metrics.csv
+│   ├── total_A_metrics.csv
+│   ├── total_B_metrics.csv
+│   └── overall_results.csv
+│
+├── predictions/
+│   ├── mackey_glass_predictions.csv
+│   ├── total_specimens_predictions.csv
+│   ├── total_A_predictions.csv
+│   └── total_B_predictions.csv
+│
+├── flrgs/
+│   ├── FOFTS/
+│   └── HOFTS/
+│
+├── memberships/
+│
+├── grid_search/
+│
+├── logs/
+│
+└── output.zip
+```
+
+Each directory contains a specific category of exported experimental artifacts.
+
+---
+
+# Forecast Figures
+
+All forecasting plots generated by the notebook are stored under
+
+```text
+outputs/figures/
+```
+
+Example
+
+```text
+outputs/
+└── figures/
+    ├── mackey_glass_prediction.png
+    ├── mackey_glass_rmse_heatmap.png
+    ├── mackey_glass_membership_functions.png
+    ├── specimens_prediction.png
+    ├── specimens_rmse_heatmap.png
+    ├── totalA_prediction.png
+    ├── totalA_rmse_heatmap.png
+    ├── totalB_prediction.png
+    └── totalB_rmse_heatmap.png
+```
+
+These figures are automatically exported in high resolution and can be directly inserted into reports or publications.
+
+---
+
+# Prediction Files
+
+For every forecasting experiment, the notebook exports the predicted values together with the corresponding ground-truth observations.
+
+Directory
+
+```text
+outputs/predictions/
+```
+
+Each CSV file contains
+
+| Column           | Description                   |
+| ---------------- | ----------------------------- |
+| Time Index       | Observation index             |
+| Actual           | Ground truth value            |
+| Predicted        | Forecast generated by FTS     |
+| Error            | Actual − Predicted            |
+| Absolute Error   | Absolute prediction error     |
+| Percentage Error | Relative prediction error (%) |
+
+Example
+
+```text
+Time,Actual,Predicted,Error,AbsoluteError
+501,0.892,0.881,0.011,0.011
+502,0.905,0.899,0.006,0.006
+...
+```
+
+These files allow users to reproduce all quantitative analyses and generate custom visualizations.
+
+---
+
+# Performance Metrics
+
+Every evaluated configuration is summarized inside
+
+```text
+outputs/metrics/
+```
+
+Example
+
+```text
+overall_results.csv
+```
+
+contains
+
+| Dataset         | Order | Partitions |      RMSE |      MAE |  MAPE |
+| --------------- | ----: | ---------: | --------: | -------: | ----: |
+| Mackey–Glass    |     3 |         30 |  0.034076 | 0.025283 | 4.075 |
+| TOTAL SPECIMENS |     1 |         15 | 10617.999 |  8352.66 | 10.13 |
+| TOTAL A         |     3 |         30 |   3700.41 |  1700.00 | 25.62 |
+| TOTAL B         |     1 |         15 |   332.418 |  214.615 | 28.38 |
+
+Additional CSV files provide the complete grid-search results for every dataset.
+
+---
+
+# Grid Search Results
+
+All evaluated parameter combinations are exported for transparency and reproducibility.
+
+Directory
+
+```text
+outputs/grid_search/
+```
+
+Each CSV contains
+
+| Order | Partitions | RMSE | MAE | MAPE |
+| ----- | ---------: | ---: | --: | ---: |
+| 1     |          7 |  ... | ... |  ... |
+| 1     |         10 |  ... | ... |  ... |
+| 1     |         15 |  ... | ... |  ... |
+| ...   |        ... |  ... | ... |  ... |
+| 4     |         30 |  ... | ... |  ... |
+
+These files make it straightforward to reproduce every heatmap presented in the report.
+
+---
+
+# Membership Function Exports
+
+The fuzzy partitions generated during training are also exported.
+
+Directory
+
+```text
+outputs/memberships/
+```
+
+Each exported file stores
+
+* Universe of discourse
+* Partition boundaries
+* Fuzzy set centers
+* Membership parameters
+
+Example
+
+```text
+A1
+A2
+A3
+...
+A30
+```
+
+This enables users to inspect the exact fuzzy partitioning employed during forecasting.
+
+---
+
+# FLRG Exports
+
+The learned Fuzzy Logical Relationship Groups are exported for both FOFTS and HOFTS models.
+
+Directory
+
+```text
+outputs/flrgs/
+```
+
+Example
+
+```text
+outputs/flrgs/
+
+FOFTS/
+
+HOFTS/
+```
+
+Each file stores
+
+Antecedent
+
+↓
+
+Consequent
+
+↓
+
+Frequency
+
+Example
+
+```text
+A7 → A8 (15)
+
+A8 → A8 (22)
+
+A8 → A9 (4)
+
+(A6,A7,A8) → A8 (11)
+
+(A7,A8,A8) → A9 (6)
+```
+
+Exporting FLRGs allows detailed inspection of the learned fuzzy rule base.
+
+---
+
+# Experiment Logs
+
+All experiment metadata are stored inside
+
+```text
+outputs/logs/
+```
+
+Example information includes
+
+* execution time
+* dataset name
+* preprocessing options
+* partitioning method
+* model order
+* random seed
+* software version
+* Python version
+
+Maintaining detailed logs improves reproducibility and simplifies debugging.
+
+---
+
+# Report
+
+The final report is included in
+
+```text
+reports/
+
+FTS_Project1_Report_Hannah_Fathi_40360347.pdf
+```
+
+The report contains
+
+* methodology
+* mathematical formulation
+* implementation details
+* experimental configuration
+* quantitative evaluation
+* visual results
+* comparative analysis
+* conclusions
+
+---
+
+# Notebook
+
+The complete implementation is provided as
+
+```text
+notebooks/
+
+Fuzzy_Project1.ipynb
+```
+
+The notebook executes the entire workflow
+
+Dataset Loading
+
+↓
+
+Preprocessing
+
+↓
+
+Partitioning
+
+↓
+
+Membership Construction
+
+↓
+
+Fuzzification
+
+↓
+
+FLRG Learning
+
+↓
+
+Forecasting
+
+↓
+
+Grid Search
+
+↓
+
+Evaluation
+
+↓
+
+Visualization
+
+↓
+
+Export Results
+
+without requiring external scripts.
+
+---
+
+# Generated Images
+
+All publication-quality figures are stored under
+
+```text
+images/
+```
+
+Typical outputs include
+
+```text
+images/
+
+mackey_glass_prediction.png
+
+mackey_glass_heatmap.png
+
+mackey_glass_membership.png
+
+specimens_prediction.png
+
+totalA_prediction.png
+
+totalB_prediction.png
+
+rmse_comparison.png
+
+membership_functions.png
+
+forecast_errors.png
+
+grid_search_results.png
+```
+
+Each image is exported at high resolution for direct inclusion in reports or academic papers.
+
+---
+
+# Compressed Release Package
+
+For convenient distribution, the repository includes a compressed archive.
+
+```text
+output.zip
+```
+
+The archive contains
+
+* generated figures
+* exported CSV files
+* prediction tables
+* learned FLRGs
+* membership definitions
+* evaluation metrics
+* notebook outputs
+
+This package enables instructors and reviewers to inspect all experimental results without rerunning the notebook.
+
+---
+
+# Reproducibility Checklist
+
+The repository is designed to ensure complete reproducibility.
+
+✔ Original datasets included
+
+✔ Source code implemented entirely from scratch
+
+✔ No external fuzzy time series libraries
+
+✔ Fixed experimental protocol
+
+✔ Chronological train/test split
+
+✔ Automatic hyperparameter search
+
+✔ Deterministic evaluation
+
+✔ Exported predictions
+
+✔ Exported metrics
+
+✔ Exported FLRGs
+
+✔ Exported membership functions
+
+✔ Publication-quality figures
+
+✔ Complete notebook
+
+✔ Final report
+
+✔ Ready-to-use release package
+
+---
+
+# Summary
+
+The repository provides a fully reproducible implementation of both First-Order and Higher-Order Fuzzy Time Series forecasting models. Every stage of the forecasting pipeline—from preprocessing and fuzzy partitioning to rule generation, prediction, visualization, and result export—is documented and accompanied by automatically generated artifacts.
+
+By organizing outputs into dedicated directories and exporting intermediate as well as final results, the repository supports transparent experimentation, straightforward verification, and future extension. Researchers, students, and reviewers can reproduce all reported findings directly from the supplied notebook and datasets without relying on external fuzzy time series frameworks.
+
+
+# Reproducibility, Limitations, Future Work & References
+
+This section concludes the repository by discussing reproducibility, current limitations of the implementation, possible future research directions, and the primary references that motivated the project. The objective is to ensure that the repository is not only a complete course assignment but also a reproducible and extensible research implementation.
+
+---
+
+# Reproducibility
+
+Reproducibility is a fundamental requirement in scientific computing and machine learning research. This repository has been designed so that every reported experiment can be regenerated directly from the provided datasets and notebook.
+
+The implementation follows a deterministic experimental pipeline in which all preprocessing, model construction, hyperparameter search, forecasting, evaluation, and visualization steps are executed automatically.
+
+To ensure reproducibility:
+
+* Original datasets are included in the repository.
+* All Fuzzy Time Series algorithms are implemented entirely from scratch.
+* No external FTS libraries are used.
+* The chronological train/test split is fixed.
+* Experimental parameters are explicitly documented.
+* Evaluation metrics are computed using identical procedures for every experiment.
+* Generated figures, prediction tables, and performance summaries are automatically exported.
+* The complete implementation is available in a single Jupyter Notebook.
+
+Consequently, anyone cloning this repository and executing the notebook should obtain results consistent with those reported in the accompanying report, subject only to minor numerical differences arising from software versions or floating-point precision.
+
+---
+
+# Computational Complexity
+
+The computational complexity of the implemented framework depends primarily on the number of observations, fuzzy partitions, and model order.
+
+## Partition Construction
+
+For a universe divided into (m) fuzzy sets, partition generation requires linear time with respect to the number of partitions.
+
+**Complexity:**
+
+O(m)
+
+---
+
+## Fuzzification
+
+Each observation is evaluated against every membership function.
+
+For
+
+* n observations
+* m fuzzy sets
+
+the computational complexity becomes
+
+O(nm)
+
+---
+
+## FLRG Construction
+
+Rule generation requires a single pass through the fuzzified sequence.
+
+For an order-(k) model,
+
+Complexity:
+
+O(n)
+
+although memory consumption increases as higher-order antecedents produce a larger rule space.
+
+---
+
+## Forecasting
+
+Each prediction consists of
+
+* rule lookup,
+* weighted defuzzification,
+* optional hierarchical back-off.
+
+Average prediction complexity remains close to constant time due to dictionary-based rule indexing.
+
+Worst-case complexity is proportional to the selected model order.
+
+---
+
+## Grid Search
+
+The complete experimental evaluation explores
+
+* 4 model orders
+* 5 partition counts
+
+yielding
+
+20 independent model configurations per forecasting target.
+
+Since four forecasting targets are evaluated, the notebook trains and evaluates 80 individual FTS models.
+
+---
+
+# Limitations
+
+Although the proposed implementation performs well across the selected datasets, several limitations should be acknowledged.
+
+## Rule Sparsity
+
+Higher-order FTS models rapidly increase the number of possible antecedent patterns.
+
+As model order grows, many antecedents appear only once or never reoccur, leading to sparse FLRG tables.
+
+Although the hierarchical back-off strategy alleviates this issue, it cannot completely eliminate sparsity.
+
+---
+
+## Fixed Membership Functions
+
+The implementation employs manually constructed triangular and Gaussian membership functions.
+
+The parameters of these functions are not optimized automatically.
+
+Adaptive fuzzy partitioning could potentially improve forecasting performance.
+
+---
+
+## Single-Variable Forecasting
+
+Each experiment models a univariate time series.
+
+Interactions among multiple variables are intentionally ignored.
+
+Consequently, external explanatory variables cannot influence predictions.
+
+---
+
+## Crisp Fuzzification
+
+Each numerical observation is assigned to a single fuzzy state using the maximum membership principle.
+
+Alternative approaches such as weighted fuzzification or probabilistic state assignments may preserve additional uncertainty information.
+
+---
+
+## Fixed Hyperparameter Grid
+
+Only a predefined collection of
+
+* model orders
+* partition numbers
+
+is evaluated.
+
+More sophisticated optimization strategies could explore a substantially larger parameter space.
+
+---
+
+# Future Work
+
+The current implementation provides a strong foundation for numerous future extensions.
+
+Potential research directions include:
+
+## Adaptive Partitioning
+
+Automatically determine fuzzy partitions using optimization techniques such as
+
+* Genetic Algorithms
+* Particle Swarm Optimization
+* Differential Evolution
+
+rather than fixed equal-width or quantile partitions.
+
+---
+
+## Automatic Membership Learning
+
+Instead of predefined triangular membership functions, future work could estimate membership parameters directly from data using optimization or clustering techniques.
+
+---
+
+## Interval Type-2 Fuzzy Sets
+
+Type-2 fuzzy systems provide improved robustness under uncertainty and measurement noise.
+
+Replacing Type-1 fuzzy sets with Interval Type-2 fuzzy sets represents a natural extension.
+
+---
+
+## Multivariate Fuzzy Time Series
+
+The current implementation considers only one variable at a time.
+
+Future work could incorporate multiple correlated variables, enabling richer forecasting models.
+
+---
+
+## Hybrid Forecasting Models
+
+Combining FTS with modern machine learning methods may improve predictive accuracy.
+
+Examples include
+
+* FTS + Neural Networks
+* FTS + LSTM
+* FTS + Transformer models
+* FTS + Gradient Boosting
+
+Such hybrid architectures could preserve interpretability while exploiting nonlinear feature learning.
+
+---
+
+## Automatic Model Selection
+
+Bayesian optimization or evolutionary search could replace exhaustive grid search for selecting
+
+* model order,
+* partition count,
+* membership parameters.
+
+---
+
+## Parallel Computation
+
+Current experiments are executed sequentially.
+
+Parallelizing the grid search across CPU cores would substantially reduce computation time for larger datasets.
+
+---
+
+# Educational Value
+
+Beyond its forecasting performance, this repository serves as a comprehensive educational resource for students studying fuzzy systems and soft computing.
+
+Every stage of the Fuzzy Time Series pipeline is implemented explicitly, allowing readers to understand:
+
+* construction of the universe of discourse,
+* fuzzy partitioning,
+* membership function design,
+* fuzzification,
+* fuzzy logical relationship generation,
+* higher-order rule construction,
+* weighted defuzzification,
+* hierarchical back-off,
+* model evaluation.
+
+Unlike implementations that rely on specialized libraries, every algorithmic component is visible and modifiable.
+
+---
+
+# Citation
+
+If this repository contributes to your research, coursework, or academic publication, please cite it using the accompanying `CITATION.cff` file.
+
+**Suggested citation:**
+
+```text
+Fathi, H. (2025).
+Fuzzy Time Series Forecasting from Scratch:
+Implementation of FOFTS and HOFTS in Python.
+Shiraz University,
+Fuzzy Sets and Systems Course Project.
+```
+
+---
+
+# References
+
+The implementation and methodology were inspired by foundational literature in fuzzy time series forecasting and fuzzy systems.
+
+1. Song, Q., & Chissom, B. S. (1993). *Forecasting enrollments with fuzzy time series*. Fuzzy Sets and Systems, 54(1), 1–9.
+
+2. Song, Q., & Chissom, B. S. (1994). *Fuzzy time series and its models*. Fuzzy Sets and Systems, 54(3), 269–277.
+
+3. Chen, S. M. (1996). *Forecasting enrollments based on fuzzy time series*. Fuzzy Sets and Systems, 81(3), 311–319.
+
+4. Zadeh, L. A. (1965). *Fuzzy Sets*. Information and Control, 8(3), 338–353.
+
+5. Ross, T. J. (2010). *Fuzzy Logic with Engineering Applications* (3rd ed.). Wiley.
+
+6. Klir, G. J., & Yuan, B. (1995). *Fuzzy Sets and Fuzzy Logic: Theory and Applications*. Prentice Hall.
+
+7. Jang, J. S. R., Sun, C. T., & Mizutani, E. (1997). *Neuro-Fuzzy and Soft Computing*. Prentice Hall.
+
+8. Mendel, J. M. (2001). *Uncertain Rule-Based Fuzzy Logic Systems*. Prentice Hall.
+
+---
+
+# Conclusion
+
+This project presents a complete implementation of First-Order and Higher-Order Fuzzy Time Series forecasting developed entirely from scratch without relying on specialized fuzzy time series libraries.
+
+The framework includes every major component required for practical FTS modeling, including preprocessing, universe construction, fuzzy partitioning, membership function evaluation, fuzzification, FLRG generation, weighted defuzzification, hierarchical back-off, hyperparameter optimization, visualization, and quantitative evaluation.
+
+Experimental results demonstrate that Higher-Order FTS models significantly improve forecasting accuracy for deterministic nonlinear systems such as the Mackey–Glass benchmark by effectively exploiting long-range temporal dependencies. Conversely, for noisy real-world epidemiological data, simpler First-Order models often achieve comparable or superior performance due to reduced rule sparsity and lower model complexity.
+
+Overall, the repository provides a transparent, reproducible, and extensible implementation of Fuzzy Time Series forecasting that is suitable for educational purposes, academic coursework, and future research in fuzzy systems and intelligent forecasting.
