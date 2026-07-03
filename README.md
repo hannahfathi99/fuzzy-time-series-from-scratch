@@ -47,7 +47,7 @@ The implementation includes an experimental framework for parameter tuning, perf
 ```text
 fuzzy-time-series-from-scratch/
 
-├── datasets/
+├── data/
 ├── notebooks/
 ├── report/
 ├── results/
