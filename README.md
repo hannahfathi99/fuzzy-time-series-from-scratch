@@ -27,10 +27,6 @@ Fall 2025
 
 Hannah Fathi
 
-**Student Number**
-
-40360347
-
 **University**
 
 Shiraz University
