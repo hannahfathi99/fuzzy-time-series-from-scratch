@@ -137,12 +137,6 @@ fuzzy-time-series-from-scratch/
 │ ├── metrics/
 │ └── logs/
 │
-├── images/
-│ ├── architecture.png
-│ ├── pipeline.png
-│ ├── membership.png
-│ └── forecast.png
-│
 ├── docs/
 │ ├── methodology.md
 │ ├── implementation.md
