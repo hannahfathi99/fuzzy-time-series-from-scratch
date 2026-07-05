@@ -877,3 +877,30 @@ The framework includes every major component required for practical FTS modeling
 Experimental results demonstrate that Higher-Order FTS models significantly improve forecasting accuracy for deterministic nonlinear systems such as the Mackey–Glass benchmark by effectively exploiting long-range temporal dependencies. Conversely, for noisy real-world epidemiological data, simpler First-Order models often achieve comparable or superior performance due to reduced rule sparsity and lower model complexity.
 
 Overall, the repository provides a transparent, reproducible, and extensible implementation of Fuzzy Time Series forecasting that is suitable for educational purposes, academic coursework, and future research in fuzzy systems and intelligent forecasting.
+
+
+---
+
+## Author
+
+**Hannah Fathi**
+
+M.Sc. Artificial Intelligence
+
+Shiraz University
+
+Research Interests:
+
+* Explainable AI
+* Computer Vision
+* Remote Sensing
+* Medical AI
+* Large Language Models
+
+---
+
+## Research Timeline (Fall 2025)
+
+During Fall 2025, this research focused on the development of a fully interpretable fuzzy time series framework for nonlinear forecasting under uncertainty.
+
+The primary objective was to design a forecasting system that operates entirely on fuzzy logic principles without relying on prebuilt fuzzy time series libraries or black-box learning models.
