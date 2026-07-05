@@ -132,10 +132,8 @@ fuzzy-time-series-from-scratch/
 │ └── figures/
 │
 ├── outputs/
-│ ├── predictions/
-│ ├── tables/
-│ ├── metrics/
-│ └── logs/
+│ ├── outputs_mg/
+│ ├── outputs_influenza/
 │
 ├── docs/
 │ ├── methodology.md
